@@ -12,6 +12,7 @@ import time
 import logs
 
 import plexapi
+import plexmovieagentmapper
 
 import plexutils
 import tmdb
@@ -21,7 +22,6 @@ import tvdb
 from config import ConfigParser
 from recipes import RecipeParser
 from utils import Colors, add_years
-
 
 class Recipe(object):
     plex = None
@@ -53,6 +53,16 @@ class Recipe(object):
 
         self.plex = plexutils.Plex(self.config['plex']['baseurl'],
                                    self.config['plex']['token'])
+        self.plex_mapper = None
+        if self.config['plex'].get('db', None):
+            try:
+                self.plex_mapper = plexmovieagentmapper.mapper.PlexMovieAgentMapper(self.config['plex']['db'])
+            except ValueError:
+                raise Exception("This version requires direct database access, no database path has been set")
+            except FileNotFoundError:
+                raise Exception("Database path provided does not exist.")
+        else:
+            raise Exception("This version requires direct database access, no database path has been set")
 
         if self.config['trakt']['username']:
             self.trakt = traktutils.Trakt(
@@ -140,15 +150,31 @@ class Recipe(object):
                 continue
             res = []
             for source_library in source_libraries:
-                lres = source_library.search(guid='imdb://' + str(item['id']))
-                if not lres and item.get('tmdb_id'):
-                    lres += source_library.search(
-                        guid='themoviedb://' + str(item['tmdb_id']))
-                if not lres and item.get('tvdb_id'):
-                    lres += source_library.search(
-                        guid='thetvdb://' + str(item['tvdb_id']))
+                # Check if the movie is in the library
+                guid = self.plex_mapper.get_plex_guid_from_imdb(str(item['id']))
+                if not guid and item.get('tmdb_id'):
+                    guid = self.plex_mapper.get_plex_guid_from_tmdb(str(item['tmdb_id']))
+                if not guid and item.get('tvdb_id'):
+                    guid = self.plex_mapper.get_plex_guid_from_tvdb(str(item['tvdb_id']))
+
+                if guid:
+                    lres = self.plex_mapper.get_details_from_plex_guid(source_library.key, guid)
+                else:
+                    lres = None
+                    """
+                    # No results, resort to searching by title and year
+                    lres = source_library.search(title=item['title'],
+                                                 year=item['year'])
+                    if not res:
+                        lres = source_library.search(title=item['title'],
+                                                     year=int(item['year']) + 1)
+                    if not res:
+                        lres = source_library.search(title=item['title'],
+                                                     year=int(item['year']) - 1)
+                    """
                 if lres:
                     res += lres
+
             if not res:
                 missing_items.append((i, item))
                 nonmatching_idx.append(i)
@@ -158,18 +184,15 @@ class Recipe(object):
                 imdb_id = None
                 tmdb_id = None
                 tvdb_id = None
-                if r.guid is not None and 'imdb://' in r.guid:
-                    imdb_id = r.guid.split('imdb://')[1].split('?')[0]
-                elif r.guid is not None and 'themoviedb://' in r.guid:
-                    tmdb_id = r.guid.split('themoviedb://')[1].split('?')[0]
-                elif r.guid is not None and 'thetvdb://' in r.guid:
-                    tvdb_id = (r.guid.split('thetvdb://')[1]
-                        .split('?')[0]
-                        .split('/')[0])
 
-                if ((imdb_id and imdb_id == str(item['id']))
-                        or (tmdb_id and tmdb_id == str(item['tmdb_id']))
-                        or (tvdb_id and tvdb_id == str(item['tvdb_id']))):
+                if self.plex_mapper.plex_guid_available(r.guid):
+                    imdb_id = self.plex_mapper.get_imdb_from_plex_guid(r.guid)
+                    tmdb_id = self.plex_mapper.get_tmdb_from_plex_guid(r.guid)
+                    tvdb_id = self.plex_mapper.get_tvdb_from_plex_guid(r.guid)
+
+                if ((imdb_id and item.get('id', None) and imdb_id == str(item['id']))
+                        or (tmdb_id and item.get('tmdb_id', None) and tmdb_id == str(item['tmdb_id']))
+                        or (tvdb_id and item.get('tvdb_id', None) and tvdb_id == str(item['tvdb_id']))):
                     if not match:
                         match = True
                         matching_total += 1

@@ -1,6 +1,8 @@
 Python-PlexLibrary
 ==================
 
+**\*\*Supports new Plex Movie Agent\*\***
+
 Python command line utility for creating and maintaining dynamic Plex
 libraries and playlists based on "recipes".
 
@@ -14,7 +16,7 @@ accordingly (sort only available for libraries).
 Known limitations
 -----------------
 
-The new Plex Movie agent is not currently supported.
+This fork will only run on the same system as the Plex Server due to the direct db access requirement.
 
 Disclaimer
 ----------

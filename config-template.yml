@@ -2,7 +2,9 @@
 # * Defaults to plexapi config
 plex:
     baseurl: 'http://localhost:32400'
-    token: ''  # https://support.plex.tv/hc/en-us/articles/204059436-Finding-an-authentication-token-X-Plex-Token
+    token: ''   # https://support.plex.tv/hc/en-us/articles/204059436-Finding-an-authentication-token-X-Plex-Token
+    db: ''      # Location of the Plex Library database, the database file will be located at $PLEX_DATA_DIRECTORY/Plug-in Support/Databases/com.plexapp.plugins.library.db
+                # $PLEX_DATA_DIRECTORY -> https://support.plex.tv/articles/202915258-where-is-the-plex-media-server-data-directory-located/
 
 # trakt.tv API details
 # * Required for fetching trakt lists
