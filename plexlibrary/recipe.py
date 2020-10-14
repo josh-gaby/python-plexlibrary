@@ -10,6 +10,9 @@ import subprocess
 import sys
 import time
 import logs
+import tempfile
+import shutil
+import re
 
 import plexapi
 import plexmovieagentmapper
@@ -22,6 +25,7 @@ import tvdb
 from config import ConfigParser
 from recipes import RecipeParser
 from utils import Colors, add_years
+
 
 class Recipe(object):
     plex = None
@@ -54,9 +58,25 @@ class Recipe(object):
         self.plex = plexutils.Plex(self.config['plex']['baseurl'],
                                    self.config['plex']['token'])
         self.plex_mapper = None
+        self._tmp_db_dir = None
         if self.config['plex'].get('db', None):
             try:
-                self.plex_mapper = plexmovieagentmapper.mapper.PlexMovieAgentMapper(self.config['plex']['db'])
+                if self.config['plex']['db'].lower() == 'remote':
+                    # Generate a temporary directory
+                    self._temp_db_dir = tempfile.mkdtemp()
+                    # Download the remote Plex DB
+                    self.plex.server.downloadDatabases(self._temp_db_dir, True)
+                    files = [f for f in os.listdir(self._temp_db_dir) if re.match(r'.*(?<!zip)$', f)]
+                    # FixMe deal with more than one database download
+                    if len(files) == 1 and os.path.isfile(self._temp_db_dir + os.path.sep + files[0]):
+                        file_path = self._temp_db_dir + os.path.sep + files[0]
+                        self.plex_mapper = plexmovieagentmapper.mapper.PlexMovieAgentMapper(file_path, copy_db=False)
+                        # We've loaded the database and compiled the hash so we can delete the temporary file
+                        dir_path = os.path.dirname(file_path)
+                        if os.path.isdir(dir_path):
+                            shutil.rmtree(dir_path, ignore_errors=True)
+                else:
+                    self.plex_mapper = plexmovieagentmapper.mapper.PlexMovieAgentMapper(self.config['plex']['db'], copy_db=True)
             except ValueError:
                 raise Exception("This version requires direct database access, no database path has been set")
             except FileNotFoundError:
@@ -86,7 +106,6 @@ class Recipe(object):
                                      self.config['tvdb']['user_key'])
 
         self.imdb = imdbutils.IMDb(self.tmdb, self.tvdb)
-
 
     def _get_trakt_lists(self):
         item_list = []  # TODO Replace with dict, scrap item_ids?
