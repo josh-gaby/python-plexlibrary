@@ -180,6 +180,7 @@ class Recipe(object):
 
         for i, item in enumerate(item_list):
             if self.debugging:
+                logs.info("")
                 logs.info(u"Trying to match {title} ({year})".format(title=item['title'], year=item['year']))
             match = False
             if 0 < max_count <= matching_total:
@@ -188,7 +189,7 @@ class Recipe(object):
             res = []
             for source_library in source_libraries:
                 if self.debugging:
-                    logs.info(u"Checking the {title} library:".format(title=source_library.title))
+                    logs.info(u"  Checking the {title} library:".format(title=source_library.title))
                 # Check if the movie is in the library
                 if self.debugging:
                     logs.info(u"    Checking with the IMDB id...")
@@ -220,7 +221,7 @@ class Recipe(object):
 
             if not res:
                 if self.debugging:
-                    logs.info(u"No matches found")
+                    logs.info(u"  No matches found!")
                 missing_items.append((i, item))
                 nonmatching_idx.append(i)
                 continue
@@ -251,7 +252,7 @@ class Recipe(object):
                         matching_total, item['title'], item['year']))
             else:
                 if self.debugging:
-                    logs.info(u"No matches found")
+                    logs.info(u"  No matches found!")
                 missing_items.append((i, item))
                 nonmatching_idx.append(i)
 
