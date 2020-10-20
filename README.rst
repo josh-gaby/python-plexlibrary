@@ -57,13 +57,23 @@ Getting started
 
 1. Clone or download this repo.
 
-2. Install Python and pip if you haven't already.
+   .. code-block:: shell
+   
+      git clone https://github.com/josh-gaby/python-plexlibrary.git
+      
+2. Switch to this branch.
+   
+   .. code-block:: shell
+   
+      git checkout direct-db-access
 
-3. Install the requirements:
+3. Install Python and pip if you haven't already.
+
+4. Install the requirements:
 
    .. code-block:: shell
 
-       pip install -r requirements.txt
+       python3 -m pip install -r requirements.txt
 
 4. Copy config-template.yml to config.yml and edit it with your information.
 
