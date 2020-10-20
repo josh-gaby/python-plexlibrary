@@ -13,10 +13,11 @@ accordingly (sort only available for libraries).
 .. _Trakt: https://trakt.tv/
 .. _IMDb: https://imdb.com/
 
-Known limitations
------------------
+Known limitations / Warning
+---------------------------
 
-This fork will only run on the same system as the Plex Server due to the direct db access requirement.
+This fork will run best if it is on the same system that the Plex Server is on due to the direct db access requirement. It can be run on a remote server but each time it is run a copy of the database will be downloaded from the Plex server which might be a lot of data transfer for bigger libraries.
+
 
 Disclaimer
 ----------
