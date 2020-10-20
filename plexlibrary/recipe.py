@@ -205,7 +205,7 @@ class Recipe(object):
 
                 if guid:
                     if self.debugging:
-                        logs.info(u"        ... looks like we've found a match")
+                        logs.info(u"    ... looks like we've found a match")
                     lres = self.plex_mapper.get_details_from_plex_guid(source_library.key, guid)
                 else:
                     lres = None
