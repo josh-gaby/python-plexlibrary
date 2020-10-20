@@ -180,17 +180,7 @@ class Recipe(object):
                     lres = self.plex_mapper.get_details_from_plex_guid(source_library.key, guid)
                 else:
                     lres = None
-                    """
-                    # No results, resort to searching by title and year
-                    lres = source_library.search(title=item['title'],
-                                                 year=item['year'])
-                    if not res:
-                        lres = source_library.search(title=item['title'],
-                                                     year=int(item['year']) + 1)
-                    if not res:
-                        lres = source_library.search(title=item['title'],
-                                                     year=int(item['year']) - 1)
-                    """
+
                 if lres:
                     res += lres
 
@@ -409,16 +399,10 @@ class Recipe(object):
             imdb_id = None
             tmdb_id = None
             tvdb_id = None
-            if m.guid is not None and 'imdb://' in m.guid:
-                imdb_id = m.guid.split('imdb://')[1].split('?')[0]
-            elif m.guid is not None and 'themoviedb://' in m.guid:
-                tmdb_id = m.guid.split('themoviedb://')[1].split('?')[0]
-            elif m.guid is not None and 'thetvdb://' in m.guid:
-                tvdb_id = (m.guid.split('thetvdb://')[1]
-                    .split('?')[0]
-                    .split('/')[0])
-            else:
-                imdb_id = None
+            if self.plex_mapper.plex_guid_available(m.guid):
+                imdb_id = self.plex_mapper.get_imdb_from_plex_guid(m.guid)
+                tmdb_id = self.plex_mapper.get_tmdb_from_plex_guid(m.guid)
+                tvdb_id = self.plex_mapper.get_tvdb_from_plex_guid(m.guid)
 
             if imdb_id and str(imdb_id) in item_ids:
                 imdb_map[imdb_id] = m
