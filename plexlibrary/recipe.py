@@ -46,6 +46,8 @@ class Recipe(object):
         if not self.recipe.validate(use_playlists=use_playlists):
             raise Exception("Error(s) in recipe")
 
+        self.debugging = self.recipe.get('debugging', None) and self.recipe['debugging']['enabled']
+
         if self.recipe['library_type'].lower().startswith('movie'):
             self.library_type = 'movie'
         elif self.recipe['library_type'].lower().startswith('tv'):
@@ -62,6 +64,8 @@ class Recipe(object):
         if self.config['plex'].get('db', None):
             try:
                 if self.config['plex']['db'].lower() == 'remote':
+                    if self.debugging:
+                        logs.info(u"Downloading the remote Plex database...")
                     # Generate a temporary directory
                     self._temp_db_dir = tempfile.mkdtemp()
                     # Download the remote Plex DB
@@ -70,12 +74,20 @@ class Recipe(object):
                     # FixMe deal with more than one database download
                     if len(files) == 1 and os.path.isfile(self._temp_db_dir + os.path.sep + files[0]):
                         file_path = self._temp_db_dir + os.path.sep + files[0]
+                        if self.debugging:
+                            logs.info(u"Building a movie lookup table...")
                         self.plex_mapper = plexmovieagentmapper.mapper.PlexMovieAgentMapper(file_path, copy_db=False)
                         # We've loaded the database and compiled the hash so we can delete the temporary file
                         dir_path = os.path.dirname(file_path)
                         if os.path.isdir(dir_path):
                             shutil.rmtree(dir_path, ignore_errors=True)
+                    else:
+                        if self.debugging:
+                            logs.info(u"Downloaded more than one database file, this is not currently being handled.")
+
                 else:
+                    if self.debugging:
+                        logs.info(u"Building a movie lookup table...")
                     self.plex_mapper = plexmovieagentmapper.mapper.PlexMovieAgentMapper(self.config['plex']['db'], copy_db=True)
             except ValueError:
                 raise Exception("This version requires direct database access, no database path has been set")
@@ -106,6 +118,7 @@ class Recipe(object):
                                      self.config['tvdb']['user_key'])
 
         self.imdb = imdbutils.IMDb(self.tmdb, self.tvdb)
+
 
     def _get_trakt_lists(self):
         item_list = []  # TODO Replace with dict, scrap item_ids?
@@ -162,6 +175,9 @@ class Recipe(object):
         max_count = (self.recipe['new_playlist'].get('max_count', 0) if self.use_playlists
                      else self.recipe['new_library'].get('max_count', 0))
 
+        if self.debugging:
+            logs.info(u"Checking {count} items for {max} max allowed matches.".format(count=len(item_list), max=max_count))
+
         for i, item in enumerate(item_list):
             match = False
             if 0 < max_count <= matching_total:
@@ -170,21 +186,37 @@ class Recipe(object):
             res = []
             for source_library in source_libraries:
                 # Check if the movie is in the library
+                if self.debugging:
+                    logs.info(u"    Checking with the IMDB id...")
                 guid = self.plex_mapper.get_plex_guid_from_imdb(str(item['id']))
                 if not guid and item.get('tmdb_id'):
+                    if self.debugging:
+                        logs.info(u"    Checking with the TMDB id...")
                     guid = self.plex_mapper.get_plex_guid_from_tmdb(str(item['tmdb_id']))
                 if not guid and item.get('tvdb_id'):
+                    if self.debugging:
+                        logs.info(u"    Checking with the TVDB id...")
                     guid = self.plex_mapper.get_plex_guid_from_tvdb(str(item['tvdb_id']))
 
                 if guid:
+                    if self.debugging:
+                        logs.info(u"        ... looks like we've found a match")
                     lres = self.plex_mapper.get_details_from_plex_guid(source_library.key, guid)
                 else:
                     lres = None
+                    """ 
+                    FixMe: We should be able to fall back to some form of title 
+                    search here... 
+                    But it would also fall back to this if the movie genuinely 
+                    isn't in the library so we would lose all speed gains 
+                    """
 
                 if lres:
                     res += lres
 
             if not res:
+                if self.debugging:
+                    logs.info(u"No matches found")
                 missing_items.append((i, item))
                 nonmatching_idx.append(i)
                 continue
@@ -193,7 +225,6 @@ class Recipe(object):
                 imdb_id = None
                 tmdb_id = None
                 tvdb_id = None
-
                 if self.plex_mapper.plex_guid_available(r.guid):
                     imdb_id = self.plex_mapper.get_imdb_from_plex_guid(r.guid)
                     tmdb_id = self.plex_mapper.get_tmdb_from_plex_guid(r.guid)
@@ -215,6 +246,8 @@ class Recipe(object):
                     logs.info(u"{} {} ({})".format(
                         matching_total, item['title'], item['year']))
             else:
+                if self.debugging:
+                    logs.info(u"No matches found")
                 missing_items.append((i, item))
                 nonmatching_idx.append(i)
 
