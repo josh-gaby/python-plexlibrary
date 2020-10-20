@@ -22,6 +22,8 @@ class ConfigParser(YAMLBase):
                 raise Exception("Missing 'baseurl' in 'plex'")
             if 'token' not in self['plex']:
                 raise Exception("Missing 'token' in 'plex'")
+            if 'db' not in self['plex']:
+                raise Exception("Missing 'db' in 'plex'")
 
         if not self.get('trakt'):
             raise Exception("Missing 'trakt' in config")
