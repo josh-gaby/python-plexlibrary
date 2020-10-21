@@ -75,7 +75,7 @@ class Recipe(object):
                     if len(files) == 1 and os.path.isfile(self._temp_db_dir + os.path.sep + files[0]):
                         file_path = self._temp_db_dir + os.path.sep + files[0]
                         if self.debugging:
-                            logs.info(u"Building a movie lookup table...")
+                            logs.info(u"Building lookup hash...")
                         self.plex_mapper = plexmovieagentmapper.mapper.PlexMovieAgentMapper(file_path, copy_db=False)
                         # We've loaded the database and compiled the hash so we can delete the temporary file
                         dir_path = os.path.dirname(file_path)
@@ -87,7 +87,7 @@ class Recipe(object):
 
                 else:
                     if self.debugging:
-                        logs.info(u"Building a movie lookup table...")
+                        logs.info(u"Building lookup hash...")
                     self.plex_mapper = plexmovieagentmapper.mapper.PlexMovieAgentMapper(self.config['plex']['db'], copy_db=True)
             except ValueError:
                 raise Exception("This version requires direct database access, no database path has been set")
@@ -190,6 +190,7 @@ class Recipe(object):
             for source_library in source_libraries:
                 if self.debugging:
                     logs.info(u"  Checking the {title} library:".format(title=source_library.title))
+
                 # Check if the movie is in the library
                 if self.debugging:
                     logs.info(u"    Checking with the IMDB id...")
@@ -348,50 +349,47 @@ class Recipe(object):
                 done = False
                 if done:
                     continue
-                for episode in tv_show.episodes():
-                    if done:
-                        break
-                    for part in episode.iterParts():
-                        old_path_file = part.file
-                        old_path, file_name = os.path.split(old_path_file)
+                for part in tv_show.iterParts():
+                    old_path_file = part.file
+                    old_path, file_name = os.path.split(old_path_file)
 
-                        folder_name = ''
-                        for library_config in self.source_library_config:
-                            for f in self.plex.get_library_paths(library_name=library_config['name']):
-                                if old_path.lower().startswith(f.lower()):
-                                    old_path = os.path.join(f,
-                                                            old_path.replace(
-                                                                f, '').strip(
-                                                                os.sep).split(
-                                                                os.sep)[0])
-                                    folder_name = os.path.relpath(old_path, f)
-                                    break
-                            else:
-                                continue
+                    folder_name = ''
+                    for library_config in self.source_library_config:
+                        for f in self.plex.get_library_paths(library_name=library_config['name']):
+                            if old_path.lower().startswith(f.lower()):
+                                old_path = os.path.join(f,
+                                                        old_path.replace(
+                                                            f, '').strip(
+                                                            os.sep).split(
+                                                            os.sep)[0])
+                                folder_name = os.path.relpath(old_path, f)
+                                break
+                        else:
+                            continue
 
-                            new_path = os.path.join(
-                                self.recipe['new_library']['folder'],
-                                folder_name)
+                        new_path = os.path.join(
+                            self.recipe['new_library']['folder'],
+                            folder_name)
 
-                            if not os.path.exists(new_path):
-                                try:
-                                    if os.name == 'nt':
-                                        subprocess.call(['mklink', '/D',
-                                                         new_path, old_path],
-                                                        shell=True)
-                                    else:
-                                        os.symlink(old_path, new_path)
-                                    count += 1
-                                    new_items.append(tv_show)
-                                    updated_paths.append(new_path)
-                                    done = True
-                                    break
-                                except Exception as e:
-                                    logs.error(u"Symlink failed for {path}: {e}"
-                                               .format(path=new_path, e=e))
-                            else:
+                        if not os.path.exists(new_path):
+                            try:
+                                if os.name == 'nt':
+                                    subprocess.call(['mklink', '/D',
+                                                     new_path, old_path],
+                                                    shell=True)
+                                else:
+                                    os.symlink(old_path, new_path)
+                                count += 1
+                                new_items.append(tv_show)
+                                updated_paths.append(new_path)
                                 done = True
                                 break
+                            except Exception as e:
+                                logs.error(u"Symlink failed for {path}: {e}"
+                                           .format(path=new_path, e=e))
+                        else:
+                            done = True
+                            break
 
         logs.info(u"Created symlinks for {count} new items:".format(count=count))
         for item in new_items:
