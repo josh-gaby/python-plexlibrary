@@ -281,7 +281,7 @@ class Recipe(object):
         new_items = []
         if self.library_type == 'movie':
             for movie in matching_items:
-                for part in movie.iterParts():
+                for part in movie.files():
                     old_path_file = part.file
                     old_path, file_name = os.path.split(old_path_file)
 
@@ -346,10 +346,7 @@ class Recipe(object):
                                     path=new_path, e=e))
         else:
             for tv_show in matching_items:
-                done = False
-                if done:
-                    continue
-                for part in tv_show.iterParts():
+                for part in tv_show.files():
                     old_path_file = part.file
                     old_path, file_name = os.path.split(old_path_file)
 
@@ -382,13 +379,11 @@ class Recipe(object):
                                 count += 1
                                 new_items.append(tv_show)
                                 updated_paths.append(new_path)
-                                done = True
                                 break
                             except Exception as e:
                                 logs.error(u"Symlink failed for {path}: {e}"
                                            .format(path=new_path, e=e))
                         else:
-                            done = True
                             break
 
         logs.info(u"Created symlinks for {count} new items:".format(count=count))
@@ -535,7 +530,7 @@ class Recipe(object):
                                 max_date < movie.originallyAvailableAt):
                         continue
 
-                for part in movie.iterParts():
+                for part in movie.files():
                     old_path_file = part.file
                     old_path, file_name = os.path.split(old_path_file)
 
@@ -577,53 +572,37 @@ class Recipe(object):
                 imdb_map.pop(mid, None)
         else:
             for tv_show in imdb_map.values():
-                done = False
-                if done:
-                    continue
-                for episode in tv_show.episodes():
-                    if done:
-                        break
-                    for part in episode.iterParts():
-                        if done:
-                            break
-                        old_path_file = part.file
-                        old_path, file_name = os.path.split(old_path_file)
+                for part in tv_show.files():
+                    old_path_file = part.file
+                    old_path, file_name = os.path.split(old_path_file)
 
-                        folder_name = ''
-                        new_library_folder = \
-                            self.recipe['new_library']['folder']
-                        old_path = os.path.join(
-                            new_library_folder,
-                            old_path.replace(new_library_folder, '').strip(
-                                os.sep).split(os.sep)[0])
-                        folder_name = os.path.relpath(old_path,
-                                                      new_library_folder)
+                    folder_name = ''
+                    new_library_folder = \
+                        self.recipe['new_library']['folder']
+                    old_path = os.path.join(new_library_folder, old_path.replace(new_library_folder, '').strip(os.sep).split(os.sep)[0])
+                    folder_name = os.path.relpath(old_path, new_library_folder)
 
-                        new_path = os.path.join(
-                            self.recipe['new_library']['folder'],
-                            folder_name)
-                        if os.path.exists(new_path):
-                            try:
-                                if os.name == 'nt':
-                                    # Python 3.2+ only
-                                    if sys.version_info < (3, 2):
-                                        assert os.path.islink(new_path)
-                                    os.rmdir(new_path)
-                                else:
+                    new_path = os.path.join(
+                        self.recipe['new_library']['folder'],
+                        folder_name)
+                    if os.path.exists(new_path):
+                        try:
+                            if os.name == 'nt':
+                                # Python 3.2+ only
+                                if sys.version_info < (3, 2):
                                     assert os.path.islink(new_path)
-                                    os.unlink(new_path)
-                                count += 1
-                                deleted_items.append(tv_show)
-                                updated_paths.append(new_path)
-                                done = True
-                                break
-                            except Exception as e:
-                                logs.error(u"Remove symlink failed for "
-                                           "{path}: {e}".format(path=new_path,
-                                                                e=e))
-                        else:
-                            done = True
+                                os.rmdir(new_path)
+                            else:
+                                assert os.path.islink(new_path)
+                                os.unlink(new_path)
+                            count += 1
+                            deleted_items.append(tv_show)
+                            updated_paths.append(new_path)
                             break
+                        except Exception as e:
+                            logs.error(u"Remove symlink failed for {path}: {e}".format(path=new_path, e=e))
+                    else:
+                        break
 
         logs.info(u"Removed symlinks for {count} items.".format(count=count))
         for item in deleted_items:
