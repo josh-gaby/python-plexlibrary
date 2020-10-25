@@ -16,6 +16,9 @@ Known limitations
 
 The new Plex Movie agent is not currently supported.
 
+(**Important:** My direct-db-access branch is fully working with the new plex movie agent)
+
+
 Disclaimer
 ----------
 This is still a work in progress, so major changes may occur in new versions.
