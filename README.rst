@@ -1,8 +1,6 @@
 Python-PlexLibrary
 ==================
 
-**\*\*Supports new Plex Movie Agent\*\***
-
 Python command line utility for creating and maintaining dynamic Plex
 libraries and playlists based on "recipes".
 
@@ -15,6 +13,9 @@ accordingly (sort only available for libraries).
 
 Known limitations / Warning
 ---------------------------
+**\*\*Supports new Plex Movie Agent\*\***
+
+For the Plex Movie Agent to work, you must be using Plex Media Server 1.20.1.3213 or newer and the metadata for the library **MUST** have been refreshed using PMS >= 1.20.1.3213
 
 This fork will run best if it is on the same system that the Plex Server is on due to the direct db access requirement. It can be run on a remote server but each time it is run a copy of the database will be downloaded from the Plex server which might be a lot of data transfer for bigger libraries.
 
@@ -25,6 +26,7 @@ This is still a work in progress, so major changes may occur in new versions.
 
 Requirements
 ------------
+* Plex media server version 1.20.1.3213 or newer
 
 * Python 3
 
@@ -80,6 +82,16 @@ Getting started
   * Here's a guide if you're unfamiliar with YAML syntax. **Most notably you need to use spaces instead of tabs!** http://docs.ansible.com/ansible/latest/YAMLSyntax.html
 
 5. Check out the recipe examples under recipes/examples. Copy an example to recipes/ and edit it with the appropriate information.
+
+Updating
+--------
+You can make sure you have the latest changes by changing to the directory you cloned this repo to and doing a git pull followed by a requirements install to make sure all requirements are up to date:
+
+.. code-block:: shell
+
+    git pull
+    python3 -m pip install -r requirements.txt
+    
 
 Usage
 -----
