@@ -513,8 +513,7 @@ class Recipe(object):
         return all_new_items
 
     def _remove_old_items_from_library(self, imdb_map):
-        logs.info(u"Removing symlinks for items "
-                  "which no longer qualify ".format(library=self.recipe['new_library']['name']))
+        logs.info(u"Removing symlinks for items which no longer qualify ".format(library=self.recipe['new_library']['name']))
         count = 0
         updated_paths = []
         deleted_items = []
@@ -530,7 +529,7 @@ class Recipe(object):
                                 max_date < movie.originallyAvailableAt):
                         continue
 
-                for part in movie.files():
+                for part in movie.iterParts():
                     old_path_file = part.file
                     old_path, file_name = os.path.split(old_path_file)
 
@@ -568,41 +567,58 @@ class Recipe(object):
                         except Exception as e:
                             logs.error(u"Remove symlink failed for "
                                        "{path}: {e}".format(path=new_path, e=e))
+
             for mid in exclude:
                 imdb_map.pop(mid, None)
         else:
             for tv_show in imdb_map.values():
-                for part in tv_show.files():
-                    old_path_file = part.file
-                    old_path, file_name = os.path.split(old_path_file)
-
-                    folder_name = ''
-                    new_library_folder = \
-                        self.recipe['new_library']['folder']
-                    old_path = os.path.join(new_library_folder, old_path.replace(new_library_folder, '').strip(os.sep).split(os.sep)[0])
-                    folder_name = os.path.relpath(old_path, new_library_folder)
-
-                    new_path = os.path.join(
-                        self.recipe['new_library']['folder'],
-                        folder_name)
-                    if os.path.exists(new_path):
-                        try:
-                            if os.name == 'nt':
-                                # Python 3.2+ only
-                                if sys.version_info < (3, 2):
-                                    assert os.path.islink(new_path)
-                                os.rmdir(new_path)
-                            else:
-                                assert os.path.islink(new_path)
-                                os.unlink(new_path)
-                            count += 1
-                            deleted_items.append(tv_show)
-                            updated_paths.append(new_path)
-                            break
-                        except Exception as e:
-                            logs.error(u"Remove symlink failed for {path}: {e}".format(path=new_path, e=e))
-                    else:
+                done = False
+                if done:
+                    continue
+                for episode in tv_show.episodes():
+                    if done:
                         break
+                    for part in episode.iterParts():
+                        if done:
+                            break
+                        old_path_file = part.file
+                        old_path, file_name = os.path.split(old_path_file)
+
+                        folder_name = ''
+                        new_library_folder = \
+                            self.recipe['new_library']['folder']
+                        old_path = os.path.join(
+                            new_library_folder,
+                            old_path.replace(new_library_folder, '').strip(
+                                os.sep).split(os.sep)[0])
+                        folder_name = os.path.relpath(old_path,
+                                                      new_library_folder)
+
+                        new_path = os.path.join(
+                            self.recipe['new_library']['folder'],
+                            folder_name)
+                        if os.path.exists(new_path):
+                            try:
+                                if os.name == 'nt':
+                                    # Python 3.2+ only
+                                    if sys.version_info < (3, 2):
+                                        assert os.path.islink(new_path)
+                                    os.rmdir(new_path)
+                                else:
+                                    assert os.path.islink(new_path)
+                                    os.unlink(new_path)
+                                count += 1
+                                deleted_items.append(tv_show)
+                                updated_paths.append(new_path)
+                                done = True
+                                break
+                            except Exception as e:
+                                logs.error(u"Remove symlink failed for "
+                                           "{path}: {e}".format(path=new_path,
+                                                                e=e))
+                        else:
+                            done = True
+                            break
 
         logs.info(u"Removed symlinks for {count} items.".format(count=count))
         for item in deleted_items:
