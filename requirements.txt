@@ -4,4 +4,4 @@ requests
 trakt
 ruamel.yaml
 lxml
-git+https://github.com/josh-gaby/python-plexmovieagentmapper.git#egg=plexmovieagentmapper>=0.1.0
+git+https://github.com/josh-gaby/python-plexmovieagentmapper.git#egg=plexmovieagentmapper
