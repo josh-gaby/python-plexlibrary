@@ -2,10 +2,9 @@
 import datetime
 import json
 
+import logs
 import requests
 import trakt
-import logs
-
 from utils import add_years
 
 
@@ -43,33 +42,41 @@ class Trakt(object):
         """Stolen from trakt.core to support optional OAUTH operations
         :todo: Fix trakt
         """
-        headers = {'Content-Type': 'application/json',
-                   'trakt-api-version': '2'}
-        # self.logger.debug('%s: %s', method, url)
-        headers['trakt-api-key'] = self.client_id
+        headers = {'Content-Type': 'application/json', 'trakt-api-version': '2',
+                   'trakt-api-key': self.client_id}
+
         if self.oauth:
             headers['Authorization'] = 'Bearer {0}'.format(self.oauth_token)
-        # self.logger.debug('headers: %s', str(headers))
-        # self.logger.debug('method, url :: %s, %s', method, url)
+
         if method == 'get':  # GETs need to pass data as params, not body
             response = requests.request(method, url, params=data,
                                         headers=headers)
         else:
             response = requests.request(method, url, data=json.dumps(data),
                                         headers=headers)
-        # self.logger.debug('RESPONSE [%s] (%s): %s',
-        #     method, url, str(response))
+
         if response.status_code in self.trakt_core.error_map:
             if response.status_code == trakt.core.errors.OAuthException.http_code:
                 # OAuth token probably expired
                 logs.warning(u"Trakt OAuth token invalid/expired")
                 self.oauth_auth()
                 return self._handle_request(method, url, data)
-            raise self.trakt_core.error_map[response.status_code]()
-        elif response.status_code == 204:  # HTTP no content
+            else:
+                raise self.trakt_core.error_map[response.status_code]()
+        elif response.status_code != 200:  # HTTP no content
+            logs.warning(u"Trakt API returned a non 200 response {}".format(
+                response.status_code))
             return None
-        json_data = json.loads(response.content.decode('UTF-8', 'ignore'))
-        return json_data
+
+        response_valid = response.content.decode('UTF-8', 'ignore')
+        if response_valid:
+            json_data = json.loads(response_valid)
+            return json_data
+        else:
+            logs.warning(u"Trakt API returned an invalid response")
+            logs.warning(response.content)
+
+        return None
 
     def add_movies(self, url, movie_list=None, movie_ids=None, max_age=0):
         if not movie_list:
@@ -93,7 +100,7 @@ class Trakt(object):
             # Skip old movies
             if max_age != 0 \
                     and (max_date > datetime.datetime.strptime(
-                        m['movie']['released'], '%Y-%m-%d')):
+                m['movie']['released'], '%Y-%m-%d')):
                 continue
             movie_list.append({
                 'id': m['movie']['ids']['imdb'],
