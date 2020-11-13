@@ -5,12 +5,12 @@ import json
 import logs
 import requests
 import trakt
+import time
 from utils import add_years
 
 
 class Trakt(object):
-    def __init__(self, username, client_id='', client_secret='',
-                 oauth_token='', oauth=False, config=None):
+    def __init__(self, username, client_id='', client_secret='', oauth_token='', oauth=False, config=None):
         self.config = config
         self.username = username
         self.client_id = client_id
@@ -21,8 +21,16 @@ class Trakt(object):
             if not self.oauth_token:
                 self.oauth_auth()
         else:
-            trakt.core.pin_auth(username, client_id=client_id,
-                                client_secret=client_secret)
+            try:
+                self._init_trackt()
+            except:
+                logs.warning(u"Trakt API returned an error, waiting 10 seconds and trying again.")
+                time.sleep(10)
+                try:
+                    self._init_trackt()
+                except:
+                    raise SystemExit('Trakt API unavailable, try again later.')
+
         self.trakt = trakt
         self.trakt_core = trakt.core.Core()
 
@@ -77,6 +85,9 @@ class Trakt(object):
             logs.warning(response.content)
 
         return None
+
+    def _init_trackt(self):
+        trakt.core.pin_auth(self.username, client_id=self.client_id, client_secret=self.client_secret)
 
     def add_movies(self, url, movie_list=None, movie_ids=None, max_age=0):
         if not movie_list:
