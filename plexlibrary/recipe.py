@@ -156,13 +156,9 @@ class Recipe(object):
             try:
                 source_library = self.plex.server.library.section(
                     library_config['name'])
-            except:  # FIXME
+            except:
                 raise Exception("The '{}' library does not exist".format(
                     library_config['name']))
-
-            # FIXME: Hack until a new plexapi version is released. 3.0.4?
-            if 'guid' not in source_library.ALLOWED_FILTERS:
-                source_library.ALLOWED_FILTERS += ('guid',)
 
             source_libraries.append(source_library)
         return source_libraries
