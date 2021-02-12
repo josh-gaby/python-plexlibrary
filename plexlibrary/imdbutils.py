@@ -7,7 +7,6 @@ from lxml import html
 import logs
 from utils import add_years
 
-
 class IMDb(object):
     def __init__(self, tmdb, tvdb):
         self.tmdb = tmdb

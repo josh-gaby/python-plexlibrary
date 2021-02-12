@@ -143,10 +143,12 @@ class TMDb(object):
                     return cache_item
 
         # Wait 10 seconds for the TMDb rate limit
-        if self.request_count >= 40:
-            logs.info(u"Waiting 10 seconds for the TMDb rate limit...")
-            time.sleep(10)
-            self.request_count = 0
+        # Removed rate limiting as it is no longer applicable
+        # https://developers.themoviedb.org/3/getting-started/request-rate-limiting
+        #if self.request_count >= 40:
+        #    logs.info(u"Waiting 10 seconds for the TMDb rate limit...")
+        #    time.sleep(10)
+        #    self.request_count = 0
 
         params = {
             'api_key': self.api_key,
